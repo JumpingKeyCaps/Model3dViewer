@@ -68,7 +68,7 @@ fun ThreeDViewer(modifier: Modifier = Modifier) {
     var dampingFactor by remember { mutableFloatStateOf(0.05f) }
 
     // --- État pour le nom du modèle à charger depuis assets ---
-    var assetModelName by remember { mutableStateOf("car.gltf") }
+    var assetModelName by remember { mutableStateOf("sumoo.gltf") }
 
     // --- État pour contrôler l'affichage de la bottom sheet ---
     var isBottomSheetOpen by remember { mutableStateOf(false) }
