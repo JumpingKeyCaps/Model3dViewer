@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroscope Controlled 3D Viewer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: transparent; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<script src="./three.min.js"></script>
+<script src="./GLTFLoader.js"></script>
+<script src="./OrbitControls.js"></script>
+
+<script>
+    // --- Références globales ---
+    let scene, camera, renderer, controls, directionalLight, ambientLight;
+    let mixer; // Instance de l'AnimationMixer
+    let loadedModel;
+    let modelCenter = new THREE.Vector3(); // Pour stocker le centre du modèle
+
+    // Stockage des rotations initiales
+    let initialRotationX = -Math.PI / 2;
+    let initialRotationY = 0;
+    let initialRotationZ = 0;
+
+    // Variables pour le suivi des interactions
+    let userInteracting = false;
+    let lastInteractionTime = 0;
+    const interactionTimeout = 250; // Temps en ms avant de revenir au contrôle par gyroscope
+
+    // --- Fonction pour appliquer l'inclinaison du téléphone au modèle 3D ---
+    function applyDeviceOrientation(sensorX, sensorY) {
+        // Ne pas appliquer les rotations du gyroscope si l'utilisateur est en train d'interagir manuellement
+        // Ou si l'interaction vient de se terminer (moins de X secondes)
+        const timeSinceLastInteraction = Date.now() - lastInteractionTime;
+
+        if (!userInteracting && timeSinceLastInteraction > interactionTimeout && loadedModel) {
+            loadedModel.rotation.y = initialRotationY + (sensorX * Math.PI / 180);
+            loadedModel.rotation.x = initialRotationX + (sensorY * Math.PI / 180);
+            loadedModel.rotation.z = initialRotationZ;
+
+            console.log("Applied gyro rotation: X=" + loadedModel.rotation.x + ", Y=" + loadedModel.rotation.y);
+        }
+    }
+
+     // --- Fonction pour charger un modèle 3D par son nom de fichier ---
+    function loadModel(modelName) {
+        console.log(`loadModel called with: ${modelName}`);
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            `./${modelName}`, // Le chemin sera relatif au dossier assets
+            function (gltf) {
+                // Supprimer l'ancien modèle s'il existe
+                scene.traverse(function (object) {
+                    if (object.isMesh || object.isGroup) {
+                        if (object !== directionalLight && object !== ambientLight && object !== camera) {
+                            scene.remove(object);
+                        }
+                    }
+                });
+
+                const model = gltf.scene;
+                scene.add(model);
+                loadedModel = model; // Stocker la référence au modèle
+                console.log('loadedModel:', loadedModel);
+
+                // --- Calculer le centre du modèle avec une bounding box ---
+                const boundingBox = new THREE.Box3().setFromObject(model);
+                modelCenter = boundingBox.getCenter(new THREE.Vector3());
+                const size = boundingBox.getSize(new THREE.Vector3());
+
+                // --- PLACER LE MODÈLE POUR QUE SON CENTRE SOIT À L'ORIGINE ---
+                model.position.sub(modelCenter); // Centrer le modèle sur l'origine
+
+                // --- CONFIGURER LES CONTRÔLES POUR CIBLER LE CENTRE DU MODÈLE ---
+                controls.target.set(0, 0, 0); // Le centre de rotation est maintenant à l'origine (qui est le centre du modèle)
+
+                // --- APPLIQUER LA ROTATION INITIALE ---
+                loadedModel.rotation.x = initialRotationX;
+                loadedModel.rotation.z = initialRotationZ;
+                loadedModel.rotation.y = initialRotationY;
+
+                console.log("Initial rotation applied to loadedModel.rotation:", loadedModel.rotation);
+
+                // --- Ajuster la caméra pour avoir une bonne vue du modèle ---
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                const fitHeightDistance = maxDimension / (2 * Math.tan((Math.PI * camera.fov) / 360));
+                const fitWidthDistance = fitHeightDistance / camera.aspect;
+                const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.2; // Ajouter un peu de marge
+
+                camera.position.set(0, distance * 0.5, distance); // Position relative à l'origine
+                controls.update();
+                console.log("GLTF model centered and camera adjusted");
+
+                // --- Gestion de l'animation (si votre modèle a des animations, vous pouvez les gérer ici) ---
+                if (gltf.animations && gltf.animations.length > 0) {
+                    mixer = new THREE.AnimationMixer(model);
+                    console.log(`${gltf.animations.length} animation(s) found:`);
+                    const firstAnimation = gltf.animations[0]; // Get the first animation
+                    if (firstAnimation) {
+                        const action = mixer.clipAction(firstAnimation);
+                        action.play();
+                        console.log("- Playing animation: ", firstAnimation.name);
+                    } else {
+                        console.log("- No animations to play.");
+                    }
+                    console.log("Animations started.");
+                } else {
+                    console.log("No animations found in this GLTF model.");
+                }
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            (error) => {
+                console.error(`An error happened while loading the GLTF model "${modelName}":`, error);
+            }
+        );
+    }
+
+    // --- Initialisation de la scène ---
+    scene = new THREE.Scene();
+    scene.background = null; // Fond transparent
+
+    camera = new THREE.PerspectiveCamera(
+        75, window.innerWidth / window.innerHeight, 0.1, 1000
+    );
+    camera.position.set(0, 1, 100);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    ambientLight = new THREE.AmbientLight(0x404040, 5.0);
+    scene.add(ambientLight);
+
+    directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(0, 30, -17);
+    directionalLight.target.position.set(0, 0, 0);
+    scene.add(directionalLight);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.screenSpacePanning = true;
+    controls.enabled = true; // Activer les contrôles
+
+    // Ajouter des événements pour détecter les interactions utilisateur
+    controls.addEventListener('start', function() {
+        userInteracting = true;
+        lastInteractionTime = Date.now();
+        console.log("User started manual interaction");
+    });
+
+    controls.addEventListener('end', function() {
+        userInteracting = false;
+        lastInteractionTime = Date.now();
+        console.log("User ended manual interaction");
+    });
+
+    // --- Ajouter des axes de référence (optionnel, pour le débogage) ---
+    // const axesHelper = new THREE.AxesHelper(5);
+    // scene.add(axesHelper);
+
+    // VI. Chargement initial du Modèle GLTF
+    loadModel('car.gltf'); // Vous pouvez changer le modèle ici
+
+    // VII. Boucle d'Animation
+    function animate() {
+        requestAnimationFrame(animate);
+        if (mixer) {
+            mixer.update(0.016);
+        }
+        controls.update(); // Important pour que les contrôles fonctionnent correctement
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // VIII. Gestion du Redimensionnement
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }, false);
+
+    console.log("Three.js setup with hybrid control and corrected rotation center complete.");
+</script>
+</body>
+</html>
