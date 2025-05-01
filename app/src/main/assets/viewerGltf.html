@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Viewer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #EEE; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<script src="./three.min.js"></script>
+<script src="./GLTFLoader.js"></script>
+<script src="./OrbitControls.js"></script>
+
+<script>
+    // --- Références globales pour les lumières ---
+    let scene, camera, renderer, controls, directionalLight, ambientLight;
+
+    // --- Fonction pour mettre à jour la position de la lumière directionnelle ---
+    function setLightPosition(x, y, z) {
+        if (directionalLight) {
+            directionalLight.position.set(parseFloat(x), parseFloat(y), parseFloat(z));
+            directionalLight.target.position.set(0, 0, 0);
+            directionalLight.target.updateMatrixWorld();
+            console.log(`Directional Light updated -> Position: (x:${x}, y:${y}, z:${z})`);
+        }
+    }
+
+    // --- Fonctions "Setter" pour la lumière directionnelle (individuelles) ---
+    function setLightX(x) {
+        if (directionalLight) {
+            directionalLight.position.x = parseFloat(x);
+            directionalLight.target.position.set(0, 0, 0);
+            directionalLight.target.updateMatrixWorld();
+            console.log(`Directional Light X updated: ${x}`);
+        }
+    }
+
+    function setLightY(y) {
+        if (directionalLight) {
+            directionalLight.position.y = parseFloat(y);
+            directionalLight.target.position.set(0, 0, 0);
+            directionalLight.target.updateMatrixWorld();
+            console.log(`Directional Light Y updated: ${y}`);
+        }
+    }
+
+    function setLightZ(z) {
+        if (directionalLight) {
+            directionalLight.position.z = parseFloat(z);
+            directionalLight.target.position.set(0, 0, 0);
+            directionalLight.target.updateMatrixWorld();
+            console.log(`Directional Light Z updated: ${z}`);
+        }
+    }
+
+    // --- Fonction pour définir l'intensité de la lumière ambiante ---
+    function setAmbientLightIntensity(intensity) {
+        if (ambientLight) {
+            ambientLight.intensity = parseFloat(intensity);
+            console.log(`Ambient Light intensity updated: ${intensity}`);
+        }
+    }
+
+    // --- Initialisation de la scène (assigne aux variables globales) ---
+    // I. Scène
+    scene = new THREE.Scene(); // Assigne à la variable globale
+    scene.background = new THREE.Color(0xcccccc);
+
+    // II. Caméra
+    camera = new THREE.PerspectiveCamera( // Assigne à la variable globale
+        75, window.innerWidth / window.innerHeight, 0.1, 1000
+    );
+    camera.position.set(0, 1, 100); // Position initiale
+
+    // III. Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true }); // Assigne à la variable globale
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // IV. Lumières
+    ambientLight = new THREE.AmbientLight(0x404040, 20.0); // Assigne à la variable globale (intensité initiale à 0.5)
+    scene.add(ambientLight);
+
+    directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Assigne à la variable globale
+    directionalLight.position.set(-3, 9, -13);
+    directionalLight.target.position.set(0, 0, 0);
+    scene.add(directionalLight);
+
+    // V. Contrôles
+    controls = new THREE.OrbitControls(camera, renderer.domElement); // Assigne à la variable globale
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.screenSpacePanning = true;
+
+    // VI. Chargement du Modèle GLTF
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+        './car.gltf',
+        function (gltf) {
+            const model = gltf.scene;
+            scene.add(model);
+            console.log("GLTF model loaded successfully");
+
+            const boundingBox = new THREE.Box3().setFromObject(model);
+            const center = boundingBox.getCenter(new THREE.Vector3());
+            const size = boundingBox.getSize(new THREE.Vector3());
+
+            model.position.sub(center);
+
+            const maxDimension = Math.max(size.x, size.y, size.z);
+            const fitHeightDistance = maxDimension / (2 * Math.tan((Math.PI * camera.fov) / 360));
+            const fitWidthDistance = fitHeightDistance / camera.aspect;
+            const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.2; // Ajouter un peu de marge
+
+            camera.position.copy(center).add(new THREE.Vector3(0, distance, distance)); // Position approximative
+            controls.target.copy(center);
+            controls.update();
+            console.log("GLTF model centered and camera adjusted");
+        },
+        (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        (error) => {
+            console.error('An error happened while loading the GLTF model:', error);
+        }
+    );
+
+    // VII. Boucle d'Animation (identique)
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // VIII. Gestion du Redimensionnement (identique)
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth , window.innerHeight);
+    }, false);
+
+    console.log("Three.js (non-module r125, dual control) setup fully complete in HTML for GLTF.");
+</script>
+
+</body>
+</html>
