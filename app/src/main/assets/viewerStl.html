@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Viewer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #EEE; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<script src="./three.min.js"></script>
+<script src="./STLLoader.js"></script>
+<script src="./OrbitControls.js"></script>
+
+<script>
+    // --- Variables globales pour l'état de la lumière ---
+    let currentLightAngleRad = 150 * Math.PI / 180; // Angle initial en radians (approx pour 3,5,2)
+    let currentLightRadius = 8; // Rayon constant pour l'orbite
+    let currentLightHeight = -5; // Hauteur initiale
+
+    // --- Références globales (déclarées ici, définies plus bas) ---
+    let scene, camera, renderer, controls, directionalLight;
+
+    // --- Fonction principale de mise à jour de la position de la lumière ---
+    function updateLightPosition() {
+      if (directionalLight) {
+        const newX = currentLightRadius * Math.cos(currentLightAngleRad);
+        const newZ = currentLightRadius * Math.sin(currentLightAngleRad);
+        directionalLight.position.set(newX, currentLightHeight, newZ);
+        console.log(`Light updated -> Angle: ${(currentLightAngleRad * 180 / Math.PI).toFixed(0)} deg, Height: <span class="math-inline">\{currentLightHeight\.toFixed\(2\)\}, Pos\(x\:</span>{newX.toFixed(2)}, z:${newZ.toFixed(2)})`);
+      }
+    }
+
+    // --- Fonctions "Setter" appelées depuis Android ---
+    function setLightAngle(angleDegrees) {
+      currentLightAngleRad = angleDegrees * Math.PI / 180;
+      updateLightPosition(); // Met à jour la position après changement d'angle
+    }
+
+    function setLightHeight(newY) {
+      currentLightHeight = newY;
+      updateLightPosition(); // Met à jour la position après changement de hauteur
+    }
+
+    // --- Initialisation de la scène (assigne aux variables globales) ---
+    // I. Scène
+    scene = new THREE.Scene(); // Assigne à la variable globale
+    scene.background = new THREE.Color(0xcccccc);
+
+    // II. Caméra
+    camera = new THREE.PerspectiveCamera( // Assigne à la variable globale
+        75, window.innerWidth / window.innerHeight, 0.1, 1000
+    );
+    camera.position.set(0, 1, 100); // Position initiale
+
+    // III. Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true }); // Assigne à la variable globale
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // IV. Lumières
+    const ambientLight = new THREE.AmbientLight(0x404040, 2);
+    scene.add(ambientLight);
+
+    directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Assigne à la variable globale
+    // Initialise la position une première fois en utilisant les valeurs globales
+    updateLightPosition();
+    scene.add(directionalLight);
+
+    // V. Contrôles
+    controls = new THREE.OrbitControls(camera, renderer.domElement); // Assigne à la variable globale
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.screenSpacePanning = false;
+
+    // VI. Chargement du Modèle STL (Pas de changement ici)
+    const loader = new THREE.STLLoader();
+    loader.load(
+        './homme.stl',
+        function (geometry) {
+            // ... (code de chargement, centrage, échelle identique) ...
+             console.log("STL Geometry loaded successfully (r125)");
+             const material = new THREE.MeshPhongMaterial({
+                 color: 0x666699, specular: 0x111111, shininess: 30
+             });
+             const mesh = new THREE.Mesh(geometry, material);
+             console.log("Mesh created (r125)");
+             // --- Centrer et Redimensionner l'objet ---
+            geometry.computeBoundingBox();       // Calcule la "boîte" qui entoure l'objet
+            const boundingBox = geometry.boundingBox;
+            const center = new THREE.Vector3();
+            boundingBox.getCenter(center);     // Trouve le centre géométrique de cette boîte
+
+            // Déplace l'objet pour que son centre géométrique soit à l'origine (0,0,0) du monde
+            mesh.position.sub(center);
+            console.log("Mesh centered (r125)");
+
+            // ... redimensionnement ...
+            scene.add(mesh);
+
+            // ... ajustement position caméra ...
+
+            // Définit le point autour duquel OrbitControls va tourner
+            const pivotY = size.y * scale * 0.5;
+            const pivotX = size.x * scale * 0.5;
+            controls.target.set(pivotX, pivotY, 0);
+            controls.update();
+            console.log("Camera and controls updated (r125)");
+        },
+        (xhr) => { /* ... progress ... */ },
+        (error) => { /* ... error ... */ }
+    );
+
+    // VII. Boucle d'Animation (identique)
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // VIII. Gestion du Redimensionnement (identique)
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth , window.innerHeight);
+    }, false);
+
+    console.log("Three.js (non-module r125, dual control) setup fully complete in HTML.");
+</script>
+
+</body>
+</html>
