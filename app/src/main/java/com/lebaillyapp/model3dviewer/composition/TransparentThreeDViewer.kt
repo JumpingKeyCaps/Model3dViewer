@@ -17,19 +17,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.lebaillyapp.model3dviewer.R
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun TransparentThreeDViewer(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize()) {
-        // Image de fond
-        Image(
-            painter = painterResource(id = R.drawable.designedbck),
-            contentScale = ContentScale.Crop,
-            contentDescription = "Background Image",
-            modifier = Modifier.fillMaxSize()
-        )
+
         // WebView avec fond transparent
         AndroidView(
             factory = { context ->
