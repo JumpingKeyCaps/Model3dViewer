@@ -4,6 +4,15 @@
 
 # Model3DViewer
 
+
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
+![three.js](https://img.shields.io/badge/three.js-000000?logo=three.js&logoColor=white)
+![WebView](https://img.shields.io/badge/WebView-AndroidView-green)
+![3D File Support](https://img.shields.io/badge/STL%20%7C%20GLTF%20%7C%20GLB-supported-8E44AD)
+![Offline Mode](https://img.shields.io/badge/Offline-Available-brightgreen)
+![Sensors](https://img.shields.io/badge/Sensors-Gyro%20%2B%20Accel%20%2B%20Magneto-blue)
+
 **Model3DViewer** is a mobile Android application that demonstrates how to render and manipulate **3D models** using a **WebView** embedded in a **Jetpack Compose** interface.
 
 This is a **Proof of Concept (POC)** that combines native Android capabilities with web-based 3D rendering powered by **three.js**.
@@ -111,12 +120,5 @@ This approach ensures **maximum compatibility** while preserving the power of th
 
 ---
 
-![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
-![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
-![three.js](https://img.shields.io/badge/three.js-000000?logo=three.js&logoColor=white)
-![WebView](https://img.shields.io/badge/WebView-AndroidView-green)
-![3D File Support](https://img.shields.io/badge/STL%20%7C%20GLTF%20%7C%20GLB-supported-8E44AD)
-![Offline Mode](https://img.shields.io/badge/Offline-Available-brightgreen)
-![Sensors](https://img.shields.io/badge/Sensors-Gyro%20%2B%20Accel%20%2B%20Magneto-blue)
 
 ---
